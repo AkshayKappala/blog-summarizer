@@ -64,16 +64,64 @@ jobs:
           git push || true
         continue-on-error: true
 
-      - name: Summary
+      - name: Generate preview summary
+        id: preview
         run: |
-          echo "## Generated Posts" >> $GITHUB_STEP_SUMMARY
+          echo "## 📸 Generated Posts - Awaiting Approval" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [ -f data/posts.json ]; then
             POSTS_COUNT=$(jq '.posts | length' data/posts.json)
             echo "Successfully generated **$POSTS_COUNT** posts!" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### Posts" >> $GITHUB_STEP_SUMMARY
+            echo "### Posts Preview" >> $GITHUB_STEP_SUMMARY
             jq -r '.posts[] | "- **\(.generated_title)** (\(.category))"' data/posts.json >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "---" >> $GITHUB_STEP_SUMMARY
+            echo "**Next Step:** Review the artifacts above and approve the 'post-to-instagram' job to publish." >> $GITHUB_STEP_SUMMARY
           else
             echo "No posts were generated in this run." >> $GITHUB_STEP_SUMMARY
           fi
+
+  post-to-instagram:
+    needs: generate
+    runs-on: ubuntu-latest
+    environment:
+      name: instagram-production
+      url: https://instagram.com/${{ vars.INSTAGRAM_USERNAME }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download generated posts
+        uses: actions/download-artifact@v4
+        with:
+          name: generated-posts-${{ github.run_number }}
+          path: ./approved-posts
+
+      - name: Display approved posts
+        run: |
+          echo "## ✅ Posting to Instagram" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f ./approved-posts/posts.json ]; then
+            POSTS_COUNT=$(jq '.posts | length' ./approved-posts/posts.json)
+            echo "Posting **$POSTS_COUNT** approved posts to Instagram..." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            jq -r '.posts[] | "- **\(.generated_title)** (\(.category))"' ./approved-posts/posts.json >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Post to Instagram
+        env:
+          INSTAGRAM_USERNAME: ${{ secrets.INSTAGRAM_USERNAME }}
+          INSTAGRAM_PASSWORD: ${{ secrets.INSTAGRAM_PASSWORD }}
+        run: |
+          echo "TODO: Implement Instagram posting logic here"
+          echo "Posts are ready in: ./approved-posts/"
+          ls -la ./approved-posts/
+          # Example: python -m src.instagram_poster --posts ./approved-posts/posts.json --images ./approved-posts/
+
+      - name: Notify completion
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "✨ Posts successfully published to Instagram!" >> $GITHUB_STEP_SUMMARY
