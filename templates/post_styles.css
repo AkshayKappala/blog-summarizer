@@ -1,0 +1,131 @@
+/* Shared Post Card Styles - Single Source of Truth */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: #000;
+}
+
+.post-container {
+    width: 1080px;
+    height: 1440px; /* Default, can be overridden to 1350px for wide images */
+    position: relative;
+    overflow: hidden;
+    background: #000;
+}
+
+/* Layer 1: Blurred Background */
+.bg-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+}
+
+.bg-layer img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: blur(60px) brightness(0.6);
+    transform: scale(1.1);
+}
+
+/* Fallback gradients if no image */
+.bg-technology {
+    background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+}
+
+.bg-business {
+    background: linear-gradient(180deg, #f093fb 0%, #f5576c 100%);
+}
+
+.bg-news {
+    background: linear-gradient(180deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.bg-default {
+    background: linear-gradient(180deg, #434343 0%, #000000 100%);
+}
+
+/* Layer 2: Main Content */
+.content-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 60px;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    z-index: 10;
+}
+
+.featured-image-wrapper {
+    position: relative;
+    flex: 0 0 auto;
+    border-radius: 60px 60px 0 0;
+    margin-bottom: 0;
+    overflow: hidden;
+    max-height: 750px;
+}
+
+.featured-image {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    display: block;
+}
+
+.glass-card {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    border-radius: 0 0 60px 60px;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(60px);
+    -webkit-backdrop-filter: blur(60px);
+    border: 3px solid rgba(255, 255, 255, 0.15);
+    border-top: 3px solid rgba(255, 255, 255, 0.3);
+    padding: 54px;
+    gap: 24px;
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.3);
+}
+
+.post-title {
+    font-size: 2.6rem;
+    font-weight: 800;
+    line-height: 1.15;
+    margin: 0 0 24px 0;
+    color: #ffffff;
+    text-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.post-description {
+    font-size: 2.2rem;
+    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 400;
+    overflow-wrap: break-word;
+    flex: 1;
+}
+
+/* Source attribution */
+.source-attribution {
+    position: absolute;
+    bottom: 15px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 1.5rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 400;
+    z-index: 100;
+}

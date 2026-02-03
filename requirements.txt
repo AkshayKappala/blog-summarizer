@@ -1,0 +1,31 @@
+# Blog Summarizer - Phase 1 Dependencies
+# RSS Feed Processing
+feedparser==6.0.10
+aiohttp==3.9.1
+
+# Gemini API for summarization
+google-generativeai>=0.8.0
+
+# Image Processing
+Pillow==10.1.0
+requests==2.31.0
+httpx>=0.28.1
+playwright==1.57.0
+
+# Configuration & Environment
+pydantic==2.5.0
+pydantic-settings==2.1.0
+python-dotenv==1.0.0
+pyyaml==6.0.1
+
+# Logging & CLI
+loguru==0.7.2
+rich==13.7.0
+
+# Async support
+aiofiles==23.2.1
+
+# Phase 2 (Optional - Instagram Integration)
+# Uncomment when ready to add Instagram posting
+# instagrapi==2.0.0
+# APScheduler==3.10.4
