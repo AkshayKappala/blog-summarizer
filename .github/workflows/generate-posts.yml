@@ -69,15 +69,19 @@ jobs:
         run: |
           echo "## 📸 Generated Posts - Awaiting Approval" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          if [ -f data/posts.json ]; then
-            POSTS_COUNT=$(jq '.posts | length' data/posts.json)
-            echo "Successfully generated **$POSTS_COUNT** posts!" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### Posts Preview" >> $GITHUB_STEP_SUMMARY
-            jq -r '.posts[] | "- **\(.generated_title)** (\(.category))"' data/posts.json >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "---" >> $GITHUB_STEP_SUMMARY
-            echo "**Next Step:** Review the artifacts above and approve the 'post-to-instagram' job to publish." >> $GITHUB_STEP_SUMMARY
+          if [ -f data/posts.json ] && [ -s data/posts.json ]; then
+            POSTS_COUNT=$(jq '.posts | length // 0' data/posts.json)
+            if [ "$POSTS_COUNT" -gt 0 ]; then
+              echo "Successfully generated **$POSTS_COUNT** posts!" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "### Posts Preview" >> $GITHUB_STEP_SUMMARY
+              jq -r '.posts[]? | "- **\(.generated_title)** (\(.category))"' data/posts.json >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "---" >> $GITHUB_STEP_SUMMARY
+              echo "**Next Step:** Review the artifacts above and approve the 'post-to-instagram' job to publish." >> $GITHUB_STEP_SUMMARY
+            else
+              echo "No posts were generated in this run (posts.json is empty)." >> $GITHUB_STEP_SUMMARY
+            fi
           else
             echo "No posts were generated in this run." >> $GITHUB_STEP_SUMMARY
           fi
