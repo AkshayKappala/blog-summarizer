@@ -393,14 +393,23 @@ CRITICAL: Return ONLY a valid JSON array, no markdown code blocks, no extra text
         for attempt in range(max_retries):
             try:
                 # Generate batch response with JSON Schema enforcement
+                # Note: Response schema might not work with all models
+                generation_config = {
+                    "temperature": self.temperature,
+                    "max_output_tokens": self.max_tokens * 2,  # More tokens for batch
+                }
+                
+                # Try structured output first, fallback to plain JSON if needed
+                try:
+                    generation_config["response_mime_type"] = "application/json"
+                    generation_config["response_schema"] = self._get_batch_response_schema()
+                except Exception:
+                    # If response_schema not supported, just request JSON format
+                    logger.warning(f"Structured output not supported for {current_model}, using plain JSON")
+                
                 model = genai.GenerativeModel(
                     model_name=current_model,
-                    generation_config={
-                        "temperature": self.temperature,
-                        "max_output_tokens": self.max_tokens * 2,  # More tokens for batch
-                        "response_mime_type": "application/json",
-                        "response_schema": self._get_batch_response_schema(),
-                    }
+                    generation_config=generation_config
                 )
 
                 response = model.generate_content(batch_prompt)
@@ -420,7 +429,8 @@ CRITICAL: Return ONLY a valid JSON array, no markdown code blocks, no extra text
                 if current_model != self.fallback_model:
                     logger.warning(f"Quota exceeded for {current_model}, switching to {self.fallback_model}")
                     current_model = self.fallback_model
-                    # Retry immediately with fallback model
+                    # Don't count this as a retry attempt
+                    attempt -= 1
                     continue
                 else:
                     logger.error(f"Quota exceeded even for fallback model: {e}")
@@ -456,10 +466,15 @@ CRITICAL: Return ONLY a valid JSON array, no markdown code blocks, no extra text
                 if json_match:
                     json_str = json_match.group(0)
                 else:
-                    logger.error(f"No JSON array found in response: {response_text[:200]}...")
+                    logger.error(f"No JSON array found in response: {response_text[:500]}...")
                     return None
 
-            data_array = json.loads(json_str)
+            try:
+                data_array = json.loads(json_str)
+            except json.JSONDecodeError as e:
+                logger.error(f"JSON parse error at position {e.pos}: {e.msg}")
+                logger.debug(f"Problematic JSON around error: ...{json_str[max(0, e.pos-100):e.pos+100]}...")
+                raise
 
             if not isinstance(data_array, list):
                 logger.error("Response is not a JSON array")
