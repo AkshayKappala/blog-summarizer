@@ -6,6 +6,7 @@ import time
 from typing import Optional
 
 import google.generativeai as genai
+from google.api_core import exceptions as google_exceptions
 from google.generativeai.types import content_types
 from loguru import logger
 
@@ -29,6 +30,7 @@ class GeminiSummarizer:
         # Get model settings
         model_settings = self.prompt_config.model_settings
         self.model_name = self.settings.gemini_model
+        self.fallback_model = "gemini-3-flash-preview"  # Latest free tier model (Feb 2026)
         self.temperature = model_settings.get("temperature", 0.7)
         self.max_tokens = model_settings.get("max_tokens", 2048)
 
@@ -306,11 +308,12 @@ class GeminiSummarizer:
         # Combine system message + user prompt for Gemini
         full_prompt = f"{self.prompt_config.system_message}\n\n{prompt}"
 
+        current_model = self.model_name
         for attempt in range(max_retries):
             try:
                 # Initialize model with generation config
                 model = genai.GenerativeModel(
-                    model_name=self.model_name,
+                    model_name=current_model,
                     generation_config={
                         "temperature": self.temperature,
                         "max_output_tokens": self.max_tokens,
@@ -331,6 +334,18 @@ class GeminiSummarizer:
                 else:
                     logger.warning(f"Attempt {attempt + 1}: Failed to parse response")
 
+            except google_exceptions.ResourceExhausted as e:
+                # HTTP 429 - Quota exceeded
+                if current_model != self.fallback_model:
+                    logger.warning(f"Quota exceeded for {current_model}, switching to {self.fallback_model}")
+                    current_model = self.fallback_model
+                    # Retry immediately with fallback model
+                    continue
+                else:
+                    logger.error(f"Quota exceeded even for fallback model: {e}")
+                    if attempt < max_retries - 1:
+                        time.sleep(2 ** attempt)
+                    
             except Exception as e:
                 logger.error(f"Attempt {attempt + 1}: Gemini API error: {e}")
                 if attempt < max_retries - 1:
@@ -374,11 +389,12 @@ Return a JSON array with exactly {len(items)} objects in the same order. Each ob
 
 CRITICAL: Return ONLY a valid JSON array, no markdown code blocks, no extra text."""
 
+        current_model = self.model_name
         for attempt in range(max_retries):
             try:
                 # Generate batch response with JSON Schema enforcement
                 model = genai.GenerativeModel(
-                    model_name=self.model_name,
+                    model_name=current_model,
                     generation_config={
                         "temperature": self.temperature,
                         "max_output_tokens": self.max_tokens * 2,  # More tokens for batch
@@ -399,6 +415,18 @@ CRITICAL: Return ONLY a valid JSON array, no markdown code blocks, no extra text
                 else:
                     logger.warning(f"Attempt {attempt + 1}: Failed to parse batch response")
 
+            except google_exceptions.ResourceExhausted as e:
+                # HTTP 429 - Quota exceeded
+                if current_model != self.fallback_model:
+                    logger.warning(f"Quota exceeded for {current_model}, switching to {self.fallback_model}")
+                    current_model = self.fallback_model
+                    # Retry immediately with fallback model
+                    continue
+                else:
+                    logger.error(f"Quota exceeded even for fallback model: {e}")
+                    if attempt < max_retries - 1:
+                        time.sleep(2 ** attempt)
+                    
             except Exception as e:
                 logger.error(f"Attempt {attempt + 1}: Gemini API error: {e}")
                 if attempt < max_retries - 1:
